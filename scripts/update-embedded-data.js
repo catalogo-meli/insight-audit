@@ -2,10 +2,10 @@ const fs = require('fs');
 const path = require('path');
 
 const indexPath = path.join(__dirname, '..', 'index.html');
-const sourceCsv = process.argv[2];
+const [, , key, date, label, sourceCsv] = process.argv;
 
-if (!sourceCsv) {
-  throw new Error('Usage: node scripts/update-embedded-data.js <csv-path>');
+if (!key || !date || !label || !sourceCsv) {
+  throw new Error('Usage: node scripts/update-embedded-data.js <run-key> <YYYY-MM-DD> <label> <csv-path>');
 }
 
 function parseCsv(text) {
@@ -89,7 +89,14 @@ if (!match) {
 
 const raw = JSON.parse(match[1]);
 const csvText = fs.readFileSync(sourceCsv, 'utf8');
-raw.sdcIII = csvToObjects(csvText);
+raw.runs = raw.runs || {};
+raw.datasetMeta = raw.datasetMeta || {};
+raw.runs[key] = csvToObjects(csvText);
+raw.datasetMeta[key] = {
+  date,
+  label,
+  short: label.slice(0, 5),
+};
 
 const nextHtml = html.replace(
   match[0],
@@ -97,4 +104,4 @@ const nextHtml = html.replace(
 );
 
 fs.writeFileSync(indexPath, nextHtml, 'utf8');
-console.log(`Embedded ${raw.sdcIII.length} rows from ${path.basename(sourceCsv)}.`);
+console.log(`Embedded ${raw.runs[key].length} rows for ${label} from ${path.basename(sourceCsv)}.`);

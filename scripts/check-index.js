@@ -10,7 +10,8 @@ if (!dataMatch) {
 
 const raw = JSON.parse(dataMatch[1]);
 console.log(`JS syntax OK: ${scripts.length} script(s)`);
-console.log(`Rows: total=${raw.total?.length || 0}, sdcIII=${raw.sdcIII?.length || 0}, tl=${raw.tl?.length || 0}`);
+const runSummary = Object.entries(raw.runs || {}).map(([key, rows]) => `${key}=${rows.length}`).join(', ');
+console.log(`Rows: ${runSummary}, tl=${raw.tl?.length || 0}`);
 
 function makeEl(id, dataset = {}) {
   return {
@@ -51,14 +52,14 @@ global.document = {
   },
 };
 
-const app = new Function(`${scripts.join('\n')}\nreturn { data, st, rows, setDataset };`)();
-const initial = { dataset: app.st.dataset, rows: app.rows().length, header: getEl('top-actions').innerHTML };
-app.setDataset('sdcIII');
-const sdcIII = { dataset: app.st.dataset, rows: app.rows().length, header: getEl('top-actions').innerHTML };
-app.setDataset('combined');
-const combined = { dataset: app.st.dataset, rows: app.rows().length, header: getEl('top-actions').innerHTML };
+const app = new Function(`${scripts.join('\n')}\nreturn { data, st, rows, datasetKeys, toggleDataset, setAllDatasets, selectedDatasetLabel };`)();
+const initial = { datasets: app.st.datasets.slice(), rows: app.rows().length, header: getEl('top-actions').innerHTML, label: app.selectedDatasetLabel() };
+app.toggleDataset(app.datasetKeys[1]);
+const single = { datasets: app.st.datasets.slice(), rows: app.rows().length, header: getEl('top-actions').innerHTML, label: app.selectedDatasetLabel() };
+app.setAllDatasets();
+const all = { datasets: app.st.datasets.slice(), rows: app.rows().length, header: getEl('top-actions').innerHTML, label: app.selectedDatasetLabel() };
 
-console.log(`Runtime: ${initial.dataset}=${initial.rows}, ${sdcIII.dataset}=${sdcIII.rows}, ${combined.dataset}=${combined.rows}`);
-if (!initial.header.includes('Muestra total Netkel') || !sdcIII.header.includes('SdC III') || !combined.header.includes('Vista combinada')) {
-  throw new Error('Dataset selector did not render expected options.');
+console.log(`Runtime: initial=${initial.rows} (${initial.label}), single=${single.rows} (${single.label}), all=${all.rows} (${all.label})`);
+if (!initial.header.includes('Todas') || !initial.header.includes('06/05') || !initial.header.includes('15/05')) {
+  throw new Error('Date selector did not render expected options.');
 }
